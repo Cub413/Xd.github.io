@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instagram protegido</title>
+<style>
+  body{margin:0;font-family:system-ui;display:flex;justify-content:center;align-items:center;height:100vh;background:#061223;color:#fff;}
+  .panel{background:#071428;padding:20px;border-radius:12px;text-align:center;width:90%;max-width:400px;}
+  input{width:80%;padding:12px;margin:10px 0;font-size:16px;border-radius:8px;border:none;}
+  button{padding:12px 20px;font-size:16px;border:none;border-radius:8px;background:#38bdf8;color:#042028;cursor:pointer;}
+  .status{color:#94a3b8;margin-top:6px;font-size:14px;}
+</style>
+</head>
+<body>
+<div class="panel" id="loginPanel">
+  <h2>Introduce contraseña</h2>
+  <input type="password" id="pwd" placeholder="6 dígitos">
+  <br>
+  <button id="checkBtn">Entrar</button>
+  <div class="status" id="status">Estado: esperando</div>
+</div>
+
+<script>
+  const CORRECT = '413';
+  const panel = document.getElementById('loginPanel');
+  const pwd = document.getElementById('pwd');
+  const status = document.getElementById('status');
+  const checkBtn = document.getElementById('checkBtn');
+
+  checkBtn.addEventListener('click', ()=>{
+    if(pwd.value.trim() === CORRECT){
+      status.textContent = 'Acceso autorizado. Abriendo Instagram...';
+      panel.style.display = 'none';
+
+      // Intent para abrir la app de Instagram (si está instalada)
+      const username = ''; // Puedes poner un usuario específico o dejar vacío
+      const appLink = 'instagram://user?username=' + username;
+      const webFallback = 'https://www.instagram.com/';
+
+      // Intent de Android: abre app si está instalada
+      window.location.href = appLink;
+
+      // Fallback: si no está instalada, abrir web
+      setTimeout(()=>{
+        window.open(webFallback, '_blank');
+      }, 1500);
+    } else {
+      status.textContent = 'Contraseña incorrecta';
+      navigator.vibrate?.(60);
+    }
+  });
+
+  pwd.addEventListener('keydown', e => { if(e.key==='Enter') checkBtn.click(); });
+</script>
+</body>
+</html>
