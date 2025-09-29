@@ -1,57 +1,393 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Instagram protegido</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Mi App - Demo</title>
 <style>
-  body{margin:0;font-family:system-ui;display:flex;justify-content:center;align-items:center;height:100vh;background:#061223;color:#fff;}
-  .panel{background:#071428;padding:20px;border-radius:12px;text-align:center;width:90%;max-width:400px;}
-  input{width:80%;padding:12px;margin:10px 0;font-size:16px;border-radius:8px;border:none;}
-  button{padding:12px 20px;font-size:16px;border:none;border-radius:8px;background:#38bdf8;color:#042028;cursor:pointer;}
-  .status{color:#94a3b8;margin-top:6px;font-size:14px;}
+  :root{
+    --bg:#061223; --card:#071428; --accent:#38bdf8; --muted:#94a3b8;
+    --glass: rgba(255,255,255,0.03);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;background:var(--bg);color:#e6eef8;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+  /* Start screen */
+  #startScreen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:20px}
+  h1{margin:0;font-size:28px}
+  button{border:0;border-radius:12px;padding:12px 18px;font-weight:700;cursor:pointer}
+  .btnPrimary{background:var(--accent);color:#042028;box-shadow:0 8px 18px rgba(56,189,248,0.12)}
+  .btnGhost{background:transparent;color:var(--accent);border:1px solid rgba(56,189,248,0.12)}
+  /* main */
+  #mainScreen{display:none;flex-direction:column;height:100%}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:linear-gradient(0deg, rgba(255,255,255,0.01), rgba(255,255,255,0.01))}
+  .titleSmall{font-size:16px;color:var(--muted)}
+  #iframeContainer{flex:1;display:flex;flex-direction:column}
+  iframe{width:100%;height:100%;border:0;flex:1;background:#000}
+  /* settings panel */
+  #settingsPanel{position:fixed;right:-100%;top:0;height:100%;width:88%;max-width:420px;background:var(--card);box-shadow:-12px 0 30px rgba(0,0,0,0.6);transition:right .28s;z-index:40;padding:16px;overflow:auto}
+  #settingsPanel.show{right:0}
+  .section{margin-bottom:14px;border-radius:10px;padding:10px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02))}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 4px}
+  .label{font-size:15px}
+  .muted{color:var(--muted);font-size:13px}
+  .switch{width:46px;height:26px;background:rgba(255,255,255,0.06);border-radius:20px;position:relative;cursor:pointer}
+  .switch .dot{position:absolute;width:20px;height:20px;border-radius:50%;background:white;top:3px;left:3px;transition:left .18s}
+  .switch.on{background:linear-gradient(90deg,#2dd4bf,#38bdf8)}
+  .switch.on .dot{left:23px;background:#042028}
+  input[type="range"]{width:46%;min-width:110px}
+  select,input[type="text"]{background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit;padding:8px;border-radius:8px}
+  .smallBtn{padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.02);cursor:pointer}
+  .danger{background:#fb7185;color:#fff}
+  .footerNote{font-size:12px;color:var(--muted);text-align:center;margin-top:8px}
+  /* modal */
+  .modalWrap{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(2,6,23,0.6);z-index:60}
+  .modal{background:var(--card);padding:18px;border-radius:12px;min-width:280px;max-width:90%}
+  .hint{font-size:13px;color:var(--muted);margin-top:8px}
+  /* utilities */
+  .hidden{display:none}
+  @media(max-width:760px){
+    h1{font-size:24px}
+    .topbar{padding:10px}
+  }
 </style>
 </head>
 <body>
-<div class="panel" id="loginPanel">
-  <h2>Introduce contraseña</h2>
-  <input type="password" id="pwd" placeholder="6 dígitos">
-  <br>
-  <button id="checkBtn">Entrar</button>
-  <div class="status" id="status">Estado: esperando</div>
+
+<!-- START SCREEN -->
+<div id="startScreen">
+  <h1>Bienvenido</h1>
+  <div style="width:100%;max-width:420px">
+    <button id="playBtn" class="btnPrimary" style="width:100%">Jugar</button>
+    <div style="height:10px"></div>
+    <button id="openSettings" class="btnGhost" style="width:100%">Ajustes</button>
+  </div>
+  <div class="muted">Versión de prueba • Experiencia optimizada para móviles</div>
+</div>
+
+<!-- MAIN SCREEN (invisible until Jugar) -->
+<div id="mainScreen">
+  <div class="topbar">
+    <div>
+      <div class="titleSmall">Mi App</div>
+      <div class="muted" style="font-size:12px">Tu interfaz web embebida</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button id="openSettingsTop" class="smallBtn">Ajustes</button>
+      <button id="backHome" class="smallBtn">Inicio</button>
+    </div>
+  </div>
+
+  <div id="iframeContainer">
+    <iframe id="githubFrame" src="" sandbox="allow-scripts allow-forms allow-same-origin allow-popups"></iframe>
+  </div>
+</div>
+
+<!-- SETTINGS PANEL -->
+<div id="settingsPanel" aria-hidden="true">
+  <h2 style="margin-top:0">Ajustes</h2>
+
+  <!-- Perfil -->
+  <div class="section">
+    <div class="row">
+      <div>
+        <div class="label">Cuenta</div>
+        <div class="muted">Sincronización y perfil</div>
+      </div>
+      <button class="smallBtn">Editar</button>
+    </div>
+    <div class="row">
+      <div>
+        <div class="label">Idioma</div>
+        <div class="muted">Preferido para la app</div>
+      </div>
+      <select id="lang">
+        <option>Español</option>
+        <option>Inglés</option>
+        <option>Portugués</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Notificaciones -->
+  <div class="section">
+    <div style="font-weight:700;margin-bottom:8px">Notificaciones</div>
+    <div class="row">
+      <div class="label">Permitir notificaciones</div>
+      <div class="switch" id="notifSwitch"><div class="dot"></div></div>
+    </div>
+    <div class="row">
+      <div class="label">Vibración</div>
+      <div class="switch on" id="vibSwitch"><div class="dot"></div></div>
+    </div>
+  </div>
+
+  <!-- Apariencia -->
+  <div class="section">
+    <div style="font-weight:700;margin-bottom:8px">Apariencia</div>
+    <div class="row">
+      <div class="label">Tema</div>
+      <select id="themeSelect"><option>Oscuro</option><option>Claro</option><option>Auto</option></select>
+    </div>
+    <div class="row">
+      <div class="label">Tamaño de texto</div>
+      <input type="range" id="txtRange" min="12" max="22" value="16">
+    </div>
+  </div>
+
+  <!-- Privacidad -->
+  <div class="section">
+    <div style="font-weight:700;margin-bottom:8px">Privacidad</div>
+    <div class="row">
+      <div class="label">Bloquear pantalla</div>
+      <div class="switch" id="lockSwitch"><div class="dot"></div></div>
+    </div>
+    <div class="row">
+      <div class="label">Mostrar sugerencias</div>
+      <div class="switch on" id="sugSwitch"><div class="dot"></div></div>
+    </div>
+  </div>
+
+  <!-- Copia de seguridad & Restauración (SECRETO: mantener pulsado para revelar) -->
+  <div class="section" id="backupBlock" style="touch-action:manipulation;">
+    <div style="font-weight:700;margin-bottom:6px">Copia de seguridad y restauración</div>
+    <div class="muted">Mantén pulsado aquí 1.2s para opciones avanzadas</div>
+    <div style="height:8px"></div>
+    <div class="row">
+      <div class="label">Última copia</div>
+      <div class="muted">— Hace 3 días</div>
+    </div>
+    <div style="height:6px"></div>
+    <div style="display:flex;gap:8px">
+      <button class="smallBtn">Hacer copia</button>
+      <button class="smallBtn">Restaurar</button>
+    </div>
+  </div>
+
+  <!-- Datos y limpieza -->
+  <div class="section">
+    <div style="font-weight:700;margin-bottom:8px">Almacenamiento</div>
+    <div class="row">
+      <div>
+        <div class="label">Cache</div>
+        <div class="muted">12.4 MB</div>
+      </div>
+      <button id="clearCache" class="smallBtn">Limpiar</button>
+    </div>
+    <div class="row">
+      <div class="label">Exportar datos</div>
+      <button class="smallBtn">Exportar</button>
+    </div>
+  </div>
+
+  <!-- Soporte y legal -->
+  <div class="section">
+    <div class="row" style="flex-direction:column;align-items:flex-start;gap:6px">
+      <div class="label">Ayuda y soporte</div>
+      <div class="muted">Documentación, términos y políticas</div>
+      <div style="display:flex;gap:8px;margin-top:8px;width:100%;">
+        <button class="smallBtn" style="flex:1">Términos</button>
+        <button class="smallBtn" style="flex:1">Política</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Espacio para botón secreto que permanece oculto hasta desbloquear -->
+  <div id="secretArea" class="section hidden">
+    <div style="font-weight:700">Opciones avanzadas</div>
+    <div class="muted">Acceso desbloqueado</div>
+    <div style="height:10px"></div>
+    <button id="openIGHidden" class="smallBtn" style="background:linear-gradient(90deg,#8338ec,#38bdf8);color:#fff">Abrir Instagram</button>
+    <div style="height:8px"></div>
+    <button id="closeSecret" class="smallBtn">Ocultar</button>
+  </div>
+
+  <div style="height:10px"></div>
+  <div style="display:flex;gap:8px">
+    <button id="closeSettings" class="smallBtn">Cerrar</button>
+    <button id="fakeUpdate" class="smallBtn">Buscar actualizaciones</button>
+  </div>
+
+  <div class="footerNote">App demo — interfaz simulada</div>
+</div>
+
+<!-- MODAL para código secreto -->
+<div class="modalWrap" id="modalWrap">
+  <div class="modal">
+    <div style="font-weight:700">Código de acceso requerido</div>
+    <div class="muted" style="margin-top:6px">Introduce el código para mostrar opciones avanzadas</div>
+    <div style="height:10px"></div>
+    <input id="secretCode" type="password" placeholder="Código">
+    <div style="height:12px"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button id="cancelModal" class="smallBtn">Cancelar</button>
+      <button id="submitModal" class="smallBtn">Aceptar</button>
+    </div>
+    <div class="hint" id="modalHint"></div>
+  </div>
 </div>
 
 <script>
-  const CORRECT = '413';
-  const panel = document.getElementById('loginPanel');
-  const pwd = document.getElementById('pwd');
-  const status = document.getElementById('status');
-  const checkBtn = document.getElementById('checkBtn');
+/* -------------------------
+   Config / elementos
+   ------------------------- */
+const playBtn = document.getElementById('playBtn');
+const startScreen = document.getElementById('startScreen');
+const mainScreen = document.getElementById('mainScreen');
+const githubFrame = document.getElementById('githubFrame');
 
-  checkBtn.addEventListener('click', ()=>{
-    if(pwd.value.trim() === CORRECT){
-      status.textContent = 'Acceso autorizado. Abriendo Instagram...';
-      panel.style.display = 'none';
+const openSettings = document.getElementById('openSettings');
+const openSettingsTop = document.getElementById('openSettingsTop');
+const settingsPanel = document.getElementById('settingsPanel');
+const closeSettings = document.getElementById('closeSettings');
+const backupBlock = document.getElementById('backupBlock');
 
-      // Intent para abrir la app de Instagram (si está instalada)
-      const username = ''; // Puedes poner un usuario específico o dejar vacío
-      const appLink = 'instagram://user?username=' + username;
-      const webFallback = 'https://www.instagram.com/';
+const modalWrap = document.getElementById('modalWrap');
+const secretCode = document.getElementById('secretCode');
+const submitModal = document.getElementById('submitModal');
+const cancelModal = document.getElementById('cancelModal');
+const modalHint = document.getElementById('modalHint');
 
-      // Intent de Android: abre app si está instalada
-      window.location.href = appLink;
+const secretArea = document.getElementById('secretArea');
+const openIGHidden = document.getElementById('openIGHidden');
+const closeSecret = document.getElementById('closeSecret');
 
-      // Fallback: si no está instalada, abrir web
-      setTimeout(()=>{
-        window.open(webFallback, '_blank');
-      }, 1500);
-    } else {
-      status.textContent = 'Contraseña incorrecta';
-      navigator.vibrate?.(60);
-    }
-  });
+const CORRECT_SECRET = '413'; // código para revelar Instagram (puedes cambiar)
 
-  pwd.addEventListener('keydown', e => { if(e.key==='Enter') checkBtn.click(); });
+/* -------------------------
+   Inicio / Play
+   ------------------------- */
+playBtn.addEventListener('click', ()=> {
+  startScreen.style.display = 'none';
+  mainScreen.style.display = 'flex';
+  // Carga la página GitHub dentro del iframe (si la conviertes en APK / WebView, se mostrará ahí)
+  githubFrame.src = 'https://cub413.github.io/Cubox.github.io/';
+});
+
+/* -------------------------
+   Panel de ajustes
+   ------------------------- */
+function showSettings(){ settingsPanel.classList.add('show'); settingsPanel.setAttribute('aria-hidden','false'); }
+function hideSettings(){ settingsPanel.classList.remove('show'); settingsPanel.setAttribute('aria-hidden','true'); }
+openSettings.addEventListener('click', showSettings);
+openSettingsTop.addEventListener('click', showSettings);
+closeSettings.addEventListener('click', hideSettings);
+
+/* -------------------------
+   Interacciones de UI (toggles etc.) — solo decorativos
+   ------------------------- */
+function toggleSwitch(el){
+  el.classList.toggle('on');
+}
+document.querySelectorAll('.switch').forEach(s => {
+  s.addEventListener('click', ()=> toggleSwitch(s));
+});
+document.getElementById('clearCache').addEventListener('click', ()=> {
+  alert('Cache limpiada (simulado).');
+  // efecto visual
+});
+
+/* Rango de texto */
+const txtRange = document.getElementById('txtRange');
+txtRange.addEventListener('input', ()=> {
+  const v = txtRange.value;
+  document.documentElement.style.fontSize = v + 'px';
+});
+
+/* fake update */
+document.getElementById('fakeUpdate').addEventListener('click', ()=> {
+  alert('Buscando actualizaciones... (simulado)');
+});
+
+/* -------------------------
+   Secreto: detectar pulsación larga en "backupBlock"
+   ------------------------- */
+let longPressTimer = null;
+let longPressMs = 1200;
+backupBlock.addEventListener('touchstart', (e)=>{
+  longPressTimer = setTimeout(()=> {
+    // abrir modal para código secreto
+    modalWrap.style.display = 'flex';
+    secretCode.value = '';
+    modalHint.textContent = '';
+    secretCode.focus();
+  }, longPressMs);
+});
+backupBlock.addEventListener('touchend', ()=> { clearTimeout(longPressTimer); });
+backupBlock.addEventListener('mousedown', ()=> { // para pruebas en desktop
+  longPressTimer = setTimeout(()=> {
+    modalWrap.style.display = 'flex';
+    secretCode.value = '';
+    modalHint.textContent = '';
+    secretCode.focus();
+  }, longPressMs);
+});
+backupBlock.addEventListener('mouseup', ()=> clearTimeout(longPressTimer));
+
+/* Modal */
+cancelModal.addEventListener('click', ()=> { modalWrap.style.display = 'none'; });
+submitModal.addEventListener('click', ()=> {
+  const code = (secretCode.value || '').trim();
+  if(code === CORRECT_SECRET){
+    modalHint.textContent = 'Acceso concedido';
+    // mostrar área secreta y cerrar modal
+    secretArea.classList.remove('hidden');
+    modalWrap.style.display = 'none';
+    // desplazarse a la sección secreta
+    setTimeout(()=> secretArea.scrollIntoView({behavior:'smooth', block:'center'}), 220);
+  } else {
+    modalHint.textContent = 'Código incorrecto';
+    navigator.vibrate?.(80);
+  }
+});
+
+/* opción para ocultar de nuevo */
+closeSecret.addEventListener('click', ()=> { secretArea.classList.add('hidden'); });
+
+/* -------------------------
+   Abrir Instagram (intento app + fallback web)
+   ------------------------- */
+function openInstagram(){
+  const username = ''; // si quieres abrir un usuario -> 'usuario'
+  const appLink = username ? ('instagram://user?username=' + username) : 'instagram://app';
+  const webFallback = 'https://www.instagram.com/';
+
+  // Intentamos abrir la app nativa mediante esquema URL
+  // En WebView/APK suele abrir la app si existe
+  window.location.href = appLink;
+
+  // Si no se abre (no instalada), mostramos fallback tras un tiempo
+  setTimeout(()=> {
+    // abrir en nueva pestaña como fallback (en APK esto abrirá navegador si no hay app)
+    window.open(webFallback, '_blank');
+  }, 1400);
+}
+
+/* enlace oculto dentro de ajustes */
+openIGHidden.addEventListener('click', ()=> {
+  // Por seguridad visual, cerramos settings y luego abrimos IG
+  hideSettings();
+  setTimeout(() => openInstagram(), 300);
+});
+
+/* -------------------------
+   Manejo de volver a inicio
+   ------------------------- */
+document.getElementById('backHome').addEventListener('click', ()=> {
+  // Volver a la pantalla de inicio
+  mainScreen.style.display = 'none';
+  startScreen.style.display = 'flex';
+  // Opcional: limpiar iframe para privacidad
+  githubFrame.src = 'about:blank';
+});
+
+/* -------------------------
+   UX menores
+   ------------------------- */
+// Cerrar modal si tocan fuera
+modalWrap.addEventListener('click', (e)=> { if(e.target === modalWrap) modalWrap.style.display = 'none'; });
+
+// Prevención mínima de scroll en panel cuando no está abierto (para móviles)
+document.addEventListener('touchmove', function(e){ /* permite scroll normal */ }, {passive:true});
 </script>
 </body>
 </html>
