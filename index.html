@@ -353,7 +353,7 @@ function openInstagram(){
 
   // Intentamos abrir la app nativa mediante esquema URL
   // En WebView/APK suele abrir la app si existe
-  window.location.href = appLink;
+window.location.replace("instagram://app");
 
   // Si no se abre (no instalada), mostramos fallback tras un tiempo
   setTimeout(()=> {
